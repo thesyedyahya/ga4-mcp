@@ -1,0 +1,58 @@
+[project]
+name = "analytics-mcp"
+description = "MCP server for Google Analytics"
+version = "0.2.0"
+# Lower bound of 3.10 due to the 'mcp' dependency:
+# https://github.com/modelcontextprotocol/python-sdk/blob/main/pyproject.toml
+requires-python = ">=3.10"
+license = "Apache-2.0"
+readme = "README.md"
+dependencies = [
+    "google-analytics-data==0.21.0",
+    "google-analytics-admin==0.28.0",
+    "google-auth~=2.40",
+    "mcp>=1.24.0",
+    "google-adk>=1.28.1",
+    "httpx>=0.28.1",
+    # SSE transport (optional but enabled by default so the wheel works
+    # both locally via stdio and remotely via SSE without re-install).
+    "starlette>=0.40.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-dotenv>=1.0.0",
+]
+keywords = ["google analytics", "analytics", "mcp", "ga4"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Internet",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+authors = [
+    { name = "Josh Radcliff", email = "jradcliff@users.noreply.github.com" },
+    { name = "Matt Landers", email = "matt-landers@users.noreply.github.com" },
+]
+
+[project.urls]
+homepage = "https://github.com/googleanalytics/google-analytics-mcp"
+repository = "https://github.com/googleanalytics/google-analytics-mcp.git"
+issues = "https://github.com/googleanalytics/google-analytics-mcp/issues"
+
+[project.scripts]
+analytics-mcp = "analytics_mcp.server:run_server"
+# The previous name of the script. Kept for backwards compatibility.
+google-analytics-mcp = "analytics_mcp.server:run_server"
+
+[project.optional-dependencies]
+dev = ["black", "nox >=2026.2.9, <2027"]
+
+[build-system]
+requires = ["setuptools>=82.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
