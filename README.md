@@ -2,28 +2,24 @@
 
 > **Production-grade MCP server for Google Analytics 4 — self-hosted, token-secured, Claude-connector-ready.**
 
-A Model Context Protocol server that gives Claude, ChatGPT, Cursor, and any other MCP client direct access to your GA4 data — property metadata, custom dimensions and metrics, run_report (the full Data API), real-time reporting, property annotations, and Google Ads link inventories.
+A Model Context Protocol server that gives Claude, ChatGPT, Cursor, and any other MCP client direct access to your GA4 data — property metadata, custom dimensions and metrics, `run_report` (the full Data API surface), real-time reporting, property annotations, and Google Ads link inventories.
 
-Forked from [googleanalytics/google-analytics-mcp](https://github.com/googleanalytics/google-analytics-mcp) (Google's official) and hardened for remote deployment behind a reverse proxy. Adds streamable-HTTP transport, token-gated auth, CORS, the path-rewrite fix that makes the Claude web connector actually load, and explicit `prompts`/`resources` capability declarations.
+Built for remote deployment behind a reverse proxy: streamable-HTTP transport, token-gated auth, CORS, the path-rewrite fix that makes the Claude web connector actually load, and explicit `prompts`/`resources` capability declarations in the initialize response.
 
-## Why this one over the upstream
+## Highlights
 
-| | Upstream (Google) | This fork |
-|---|---|---|
-| Stdio transport for local Claude Desktop | ✅ | ✅ |
-| Basic Bearer auth on SSE | ✅ | ✅ |
-| **Streamable-HTTP transport at `/mcp`** | ❌ | ✅ |
-| **Bare `/mcp` works (no 307 → http:// redirect)** | ❌ | ✅ |
-| **Token auth via 4 paths** (`?token=`, Bearer, X-Api-Key, Mcp-Auth-Token) | partial | ✅ |
-| **CORS for browser-based MCP clients** | ❌ | ✅ |
-| **No-compress middleware** (Claude web connector breaks on brotli) | ❌ | ✅ |
-| **`prompts` + `resources` capabilities declared in initialize** *(see below)* | ❌ | ✅ |
-| **`/healthz` endpoint** | ❌ | ✅ |
-| **`.env` loading** via `python-dotenv` | ❌ | ✅ |
-| **`proxy_headers=True`** (X-Forwarded-Proto respected) | ❌ | ✅ |
-| **Pure-ASGI path rewriter** (bare `/mcp` → `/mcp/` before routing) | ❌ | ✅ |
+- **Three transports** — `stdio` (Claude Desktop), `sse` (legacy remote), and `streamable-http` at `/mcp` (current spec, what the Claude web connector expects)
+- **Bare `/mcp` works** — no 307 → `http://` redirect that Claude's connector refuses to follow
+- **Token auth via 4 paths** — `?token=`, `Authorization: Bearer`, `X-Api-Key`, `Mcp-Auth-Token`
+- **CORS for browser-based MCP clients** — wildcard origins by default, restrict via env
+- **No-compress middleware** — Claude's web connector breaks on brotli-compressed event streams
+- **`prompts` + `resources` capabilities declared in initialize** — without this Claude's validator rejects the server
+- **`/healthz` endpoint** for liveness probes
+- **`.env` loading** via `python-dotenv`
+- **`proxy_headers=True`** so X-Forwarded-Proto is respected when behind Traefik/Caddy
+- **Pure-ASGI path rewriter** (bare `/mcp` → `/mcp/`) — solved at scope level, before routing
 
-### The non-obvious fixes you don't find on Google
+### The non-obvious bugs this server already solves
 
 1. **Bare `/mcp` returned 307 to `http://`.** Starlette's `Mount("/mcp", X)` regex requires a trailing slash, so a bare POST `/mcp` falls through to a 307 redirect. Worse, Traefik terminating TLS doesn't always rewrite the Location header back to `https://` — so Claude's connector validator got an `http://` redirect and rejected it with "Couldn't reach the MCP server". Fix: pure-ASGI middleware rewrites `scope["path"]` from `/mcp` to `/mcp/` *before* the router sees it. Also `proxy_headers=True` on uvicorn so any future redirect stays HTTPS.
 
@@ -35,7 +31,7 @@ If you've ever spent an afternoon debugging "Couldn't reach the MCP server" with
 
 `get_account_summaries` · `list_google_ads_links` · `get_property_details` · `list_property_annotations` · `get_custom_dimensions_and_metrics` · `run_report` · `run_realtime_report`
 
-All from the upstream — this fork hardens infrastructure, doesn't change tool behavior.
+Tool surface mirrors the public Google Analytics MCP spec — the work here is in transport, auth, and deploy-ability, not in changing tool behavior.
 
 ## Quick start — local (Claude Desktop)
 
@@ -113,7 +109,7 @@ After connecting:
 
 ## License
 
-Apache 2.0. See [LICENSE](LICENSE). Includes substantial portions from [googleanalytics/google-analytics-mcp](https://github.com/googleanalytics/google-analytics-mcp) — credit + thanks to the GA team (Josh Radcliff, Matt Landers, and contributors).
+Apache 2.0. See [LICENSE](LICENSE).
 
 ## About
 
